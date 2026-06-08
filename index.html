@@ -18,7 +18,7 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            font-family: system-ui, -apple-system, 'SF Pro Display', sans-serif;
+            font-family: system-ui, -apple-system, sans-serif;
             padding: 20px;
             overflow: hidden;
         }
@@ -77,23 +77,6 @@
             transition: height 0.05s ease-out;
             box-shadow: 0 0 6px rgba(255, 50, 50, 0.5);
         }
-        .telegram-btn {
-            display: inline-block;
-            padding: 14px 32px;
-            border-radius: 999px;
-            text-decoration: none;
-            color: white;
-            font-size: 17px;
-            font-weight: 500;
-            backdrop-filter: blur(20px);
-            background: rgba(30, 15, 15, 0.4);
-            border: 1px solid rgba(255, 100, 100, 0.3);
-            transition: all 0.2s ease;
-            margin-bottom: 20px;
-        }
-        .telegram-btn:active {
-            transform: scale(0.96);
-        }
         .description {
             color: rgba(255, 255, 255, 0.6);
             font-size: 12px;
@@ -122,7 +105,6 @@
         }
         @media (max-width: 550px) {
             .glass-circle { width: 210px; height: 210px; margin-bottom: 35px; }
-            .telegram-btn { padding: 12px 26px; font-size: 15px; }
             .visualizer { gap: 4px; }
             .visualizer .bar { width: 4px; }
         }
@@ -140,9 +122,6 @@
             <div class="bar"></div><div class="bar"></div><div class="bar"></div>
             <div class="bar"></div><div class="bar"></div><div class="bar"></div>
         </div>
-        <a href="https://t.me/ВАШ_БОТ" class="telegram-btn" target="_blank" id="telegramLink">
-            @ВАШ_БОТ
-        </a>
         <div class="description">
             🎭 Мемные звуки • NFC пранки
         </div>
@@ -155,45 +134,69 @@
         const ctx = canvas.getContext('2d');
         let width = window.innerWidth;
         let height = window.innerHeight;
+        
         function resizeCanvas() {
             width = window.innerWidth;
             height = window.innerHeight;
             canvas.width = width;
             canvas.height = height;
+            initBackground();
         }
-        const particles = [];
-        for (let i = 0; i < 60; i++) {
-            particles.push({
-                x: Math.random() * width,
-                y: Math.random() * height,
-                radius: 2 + Math.random() * 4,
-                vx: (Math.random() - 0.5) * 0.8,
-                vy: (Math.random() - 0.5) * 0.8,
-                opacity: 0.3 + Math.random() * 0.5
-            });
+        
+        // === ФОНОВЫЕ ОБЪЕКТЫ (как в Яндекс Музыке) ===
+        let bgObjects = [];
+        
+        function initBackground() {
+            bgObjects = [];
+            for (let i = 0; i < 12; i++) {
+                bgObjects.push({
+                    x: Math.random() * width,
+                    y: Math.random() * height,
+                    radius: 100 + Math.random() * 150,
+                    vx: (Math.random() - 0.5) * 0.15,
+                    vy: (Math.random() - 0.5) * 0.15,
+                    opacity: 0.12 + Math.random() * 0.1,
+                    r: 160 + Math.random() * 60,
+                    g: 30 + Math.random() * 30,
+                    b: 30 + Math.random() * 30
+                });
+            }
         }
-        function draw() {
+        
+        function drawBgObjects() {
+            for (let obj of bgObjects) {
+                obj.x += obj.vx;
+                obj.y += obj.vy;
+                if (obj.x < -obj.radius) obj.x = width + obj.radius;
+                if (obj.x > width + obj.radius) obj.x = -obj.radius;
+                if (obj.y < -obj.radius) obj.y = height + obj.radius;
+                if (obj.y > height + obj.radius) obj.y = -obj.radius;
+                
+                const grad = ctx.createRadialGradient(obj.x, obj.y, 5, obj.x, obj.y, obj.radius);
+                grad.addColorStop(0, `rgba(${obj.r}, ${obj.g}, ${obj.b}, ${obj.opacity})`);
+                grad.addColorStop(0.6, `rgba(${obj.r}, ${obj.g}, ${obj.b}, ${obj.opacity * 0.3})`);
+                grad.addColorStop(1, `rgba(${obj.r}, ${obj.g}, ${obj.b}, 0)`);
+                
+                ctx.beginPath();
+                ctx.arc(obj.x, obj.y, obj.radius, 0, Math.PI * 2);
+                ctx.fillStyle = grad;
+                ctx.fill();
+            }
+        }
+        
+        function drawBackground() {
             if (!ctx) return;
             ctx.fillStyle = '#0a0505';
             ctx.fillRect(0, 0, width, height);
-            for (let p of particles) {
-                p.x += p.vx;
-                p.y += p.vy;
-                if (p.x < -20) p.x = width + 20;
-                if (p.x > width + 20) p.x = -20;
-                if (p.y < -20) p.y = height + 20;
-                if (p.y > height + 20) p.y = -20;
-                ctx.beginPath();
-                ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
-                ctx.fillStyle = `rgba(255, 200, 200, ${p.opacity * 0.4})`;
-                ctx.fill();
-            }
-            requestAnimationFrame(draw);
+            drawBgObjects();
+            requestAnimationFrame(drawBackground);
         }
+        
         window.addEventListener('resize', () => resizeCanvas());
         resizeCanvas();
-        draw();
+        drawBackground();
         
+        // === ЗВУК И ВИЗУАЛИЗАТОР ===
         const playButton = document.getElementById('playButton');
         const audio = document.getElementById('audioPlayer');
         const visualizerBars = document.querySelectorAll('.visualizer .bar');
@@ -202,6 +205,7 @@
         let source = null;
         let analyser = null;
         let isAudioSetup = false;
+        
         function setupAudio() {
             if (isAudioSetup) return;
             try {
@@ -214,6 +218,7 @@
                 isAudioSetup = true;
             } catch(e) {}
         }
+        
         function updateVisualizer() {
             if (!audio.paused && audio.currentTime > 0 && analyser) {
                 const dataArray = new Uint8Array(analyser.frequencyBinCount);
@@ -235,7 +240,9 @@
                 visualizerBars.forEach(bar => bar.style.height = '4px');
             }
         }
+        
         audio.load();
+        
         function playSound() {
             if (!isAudioSetup) setupAudio();
             audio.currentTime = 0;
@@ -259,19 +266,23 @@
                 setTimeout(() => msg.remove(), 1500);
             });
         }
+        
         audio.addEventListener('pause', () => {
             if (animId) cancelAnimationFrame(animId);
             visualizerBars.forEach(bar => bar.style.height = '4px');
         });
+        
         audio.addEventListener('ended', () => {
             if (animId) cancelAnimationFrame(animId);
             visualizerBars.forEach(bar => bar.style.height = '4px');
         });
+        
         playButton.addEventListener('click', playSound);
         playButton.addEventListener('touchstart', (e) => {
             e.preventDefault();
             playSound();
         });
+        
         document.addEventListener('pointerdown', (e) => {
             const glow = document.createElement('div');
             glow.className = 'tap-glow';
@@ -280,6 +291,7 @@
             document.body.appendChild(glow);
             setTimeout(() => glow.remove(), 500);
         });
+        
         const img = document.getElementById('tapkiImage');
         if (img) {
             img.onerror = function() {
