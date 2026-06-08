@@ -5,308 +5,65 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
     <title>NFC Tapki</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            user-select: none;
-            -webkit-tap-highlight-color: transparent;
-        }
-        body {
-            min-height: 100vh;
-            background: #0a0505;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-family: system-ui, -apple-system, sans-serif;
-            padding: 20px;
-            overflow: hidden;
-        }
-        canvas {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 0;
-            display: block;
-        }
-        .container {
-            position: relative;
-            z-index: 2;
-            text-align: center;
-            width: 100%;
-            max-width: 380px;
-        }
-        .glass-circle {
-            width: 260px;
-            height: 260px;
-            border-radius: 50%;
-            margin: 0 auto 40px;
-            overflow: hidden;
-            backdrop-filter: blur(18px);
-            background: rgba(0, 0, 0, 0.3);
-            border: 1px solid rgba(255, 180, 180, 0.3);
-            cursor: pointer;
-            transition: transform 0.1s ease, box-shadow 0.2s ease;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-        .glass-circle:active {
-            transform: scale(0.96);
-            box-shadow: 0 0 50px rgba(255, 50, 50, 0.5);
-        }
-        .glass-circle img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-        .visualizer {
-            display: flex;
-            justify-content: center;
-            align-items: flex-end;
-            gap: 6px;
-            margin-bottom: 35px;
-            height: 50px;
-        }
-        .visualizer .bar {
-            width: 5px;
-            background: rgba(255, 100, 100, 0.9);
-            border-radius: 3px;
-            transition: height 0.05s ease-out;
-            box-shadow: 0 0 6px rgba(255, 50, 50, 0.5);
-        }
-        .description {
-            color: rgba(255, 255, 255, 0.6);
-            font-size: 12px;
-            font-weight: 500;
-            display: inline-block;
-            padding: 5px 16px;
-            border-radius: 30px;
-            background: rgba(0, 0, 0, 0.3);
-        }
-        .tap-glow {
-            position: fixed;
-            width: 220px;
-            height: 220px;
-            border-radius: 50%;
-            background: radial-gradient(circle, rgba(255, 200, 200, 0.3), transparent 70%);
-            pointer-events: none;
-            transform: translate(-50%, -50%) scale(0.3);
-            animation: glowFade 0.5s ease-out forwards;
-            z-index: 9999;
-        }
-        @keyframes glowFade {
-            to {
-                opacity: 0;
-                transform: translate(-50%, -50%) scale(2.2);
-            }
-        }
-        @media (max-width: 550px) {
-            .glass-circle { width: 210px; height: 210px; margin-bottom: 35px; }
-            .visualizer { gap: 4px; }
-            .visualizer .bar { width: 4px; }
-        }
+        *{margin:0;padding:0;box-sizing:border-box;user-select:none;-webkit-tap-highlight-color:transparent}
+        body{min-height:100vh;background:#0a0505;display:flex;justify-content:center;align-items:center;font-family:system-ui,sans-serif;padding:20px;overflow:hidden}
+        canvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;display:block}
+        .container{position:relative;z-index:2;text-align:center;width:100%;max-width:380px}
+        .glass-circle{width:260px;height:260px;border-radius:50%;margin:0 auto 40px;overflow:hidden;backdrop-filter:blur(18px);background:rgba(0,0,0,0.3);border:1px solid rgba(255,180,180,0.3);cursor:pointer;transition:0.1s;display:flex;align-items:center;justify-content:center}
+        .glass-circle:active{transform:scale(0.96);box-shadow:0 0 50px rgba(255,50,50,0.5)}
+        .glass-circle img{width:100%;height:100%;object-fit:cover}
+        .visualizer{display:flex;justify-content:center;align-items:flex-end;gap:6px;margin-bottom:35px;height:50px}
+        .visualizer .bar{width:5px;background:rgba(255,100,100,0.9);border-radius:3px;transition:height 0.05s;box-shadow:0 0 6px rgba(255,50,50,0.5)}
+        .description{color:rgba(255,255,255,0.6);font-size:12px;display:inline-block;padding:5px 16px;border-radius:30px;background:rgba(0,0,0,0.3)}
+        .tap-glow{position:fixed;width:220px;height:220px;border-radius:50%;background:radial-gradient(circle,rgba(255,200,200,0.3),transparent 70%);pointer-events:none;transform:translate(-50%,-50%) scale(0.3);animation:glowFade 0.5s forwards;z-index:9999}
+        @keyframes glowFade{to{opacity:0;transform:translate(-50%,-50%) scale(2.2)}}
+        @media(max-width:550px){.glass-circle{width:210px;height:210px;margin-bottom:35px}.visualizer{gap:4px}.visualizer .bar{width:4px}}
     </style>
 </head>
 <body>
     <canvas id="bgCanvas"></canvas>
     <div class="container">
-        <div class="glass-circle" id="playButton">
-            <img src="tapki.png" alt="Tapki" id="tapkiImage">
-        </div>
-        <div class="visualizer" id="visualizer">
-            <div class="bar"></div><div class="bar"></div><div class="bar"></div>
-            <div class="bar"></div><div class="bar"></div><div class="bar"></div>
-            <div class="bar"></div><div class="bar"></div><div class="bar"></div>
-            <div class="bar"></div><div class="bar"></div><div class="bar"></div>
-        </div>
-        <div class="description">
-            🎭 Мемные звуки • NFC пранки
-        </div>
+        <div class="glass-circle" id="playButton"><img src="tapki.png" alt="Tapki" id="tapkiImage"></div>
+        <div class="visualizer" id="visualizer"></div>
+        <div class="description">🎭 Мемные звуки • NFC пранки</div>
     </div>
-    <audio id="audioPlayer" preload="auto">
-        <source src="https://raw.githubusercontent.com/otklix/Player/main/skachai-maks.mp3" type="audio/mpeg">
-    </audio>
+    <audio id="audioPlayer" preload="auto"><source src="skachai-maks.mp3" type="audio/mpeg"></audio>
     <script>
-        const canvas = document.getElementById('bgCanvas');
-        const ctx = canvas.getContext('2d');
-        let width = window.innerWidth;
-        let height = window.innerHeight;
-        
-        function resizeCanvas() {
-            width = window.innerWidth;
-            height = window.innerHeight;
-            canvas.width = width;
-            canvas.height = height;
-            initBackground();
-        }
-        
-        // === ФОНОВЫЕ ОБЪЕКТЫ (как в Яндекс Музыке) ===
-        let bgObjects = [];
-        
-        function initBackground() {
-            bgObjects = [];
-            for (let i = 0; i < 12; i++) {
-                bgObjects.push({
-                    x: Math.random() * width,
-                    y: Math.random() * height,
-                    radius: 100 + Math.random() * 150,
-                    vx: (Math.random() - 0.5) * 0.15,
-                    vy: (Math.random() - 0.5) * 0.15,
-                    opacity: 0.12 + Math.random() * 0.1,
-                    r: 160 + Math.random() * 60,
-                    g: 30 + Math.random() * 30,
-                    b: 30 + Math.random() * 30
-                });
+        const canvas=document.getElementById('bgCanvas'),ctx=canvas.getContext('2d');
+        let w,h,parts=[];
+        function resize(){w=innerWidth;h=innerHeight;canvas.width=w;canvas.height=h}
+        for(let i=0;i<60;i++) parts.push({x:Math.random()*w,y:Math.random()*h,r:2+Math.random()*4,vx:(Math.random()-0.5)*0.8,vy:(Math.random()-0.5)*0.8,op:0.3+Math.random()*0.5});
+        function draw(){
+            ctx.fillStyle='#0a0505';ctx.fillRect(0,0,w,h);
+            for(let p of parts){
+                p.x+=p.vx;p.y+=p.vy;
+                if(p.x<-20)p.x=w+20;if(p.x>w+20)p.x=-20;if(p.y<-20)p.y=h+20;if(p.y>h+20)p.y=-20;
+                ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fillStyle=`rgba(255,200,200,${p.op*0.4})`;ctx.fill();
             }
+            requestAnimationFrame(draw);
         }
-        
-        function drawBgObjects() {
-            for (let obj of bgObjects) {
-                obj.x += obj.vx;
-                obj.y += obj.vy;
-                if (obj.x < -obj.radius) obj.x = width + obj.radius;
-                if (obj.x > width + obj.radius) obj.x = -obj.radius;
-                if (obj.y < -obj.radius) obj.y = height + obj.radius;
-                if (obj.y > height + obj.radius) obj.y = -obj.radius;
-                
-                const grad = ctx.createRadialGradient(obj.x, obj.y, 5, obj.x, obj.y, obj.radius);
-                grad.addColorStop(0, `rgba(${obj.r}, ${obj.g}, ${obj.b}, ${obj.opacity})`);
-                grad.addColorStop(0.6, `rgba(${obj.r}, ${obj.g}, ${obj.b}, ${obj.opacity * 0.3})`);
-                grad.addColorStop(1, `rgba(${obj.r}, ${obj.g}, ${obj.b}, 0)`);
-                
-                ctx.beginPath();
-                ctx.arc(obj.x, obj.y, obj.radius, 0, Math.PI * 2);
-                ctx.fillStyle = grad;
-                ctx.fill();
-            }
+        window.onresize=resize;resize();draw();
+        const btn=document.getElementById('playButton'),audio=document.getElementById('audioPlayer'),bars=document.querySelectorAll('.visualizer .bar');
+        let anim=null,acx=null,src=null,anal=null,setUp=false;
+        function setupAudio(){if(setUp)return;try{acx=new AudioContext;src=acx.createMediaElementSource(audio);anal=acx.createAnalyser();anal.fftSize=256;src.connect(anal);anal.connect(acx.destination);setUp=true}catch(e){}}
+        function update(){
+            if(!audio.paused&&audio.currentTime>0&&anal){
+                let data=new Uint8Array(anal.frequencyBinCount);anal.getByteFrequencyData(data);
+                let step=Math.floor(data.length/bars.length);
+                bars.forEach((bar,i)=>{let v=0;for(let j=0;j<step;j++)v+=data[i*step+j]||0;let h=4+(v/step/255)*55;bar.style.height=Math.min(h,50)+'px'});
+                anim=requestAnimationFrame(update);
+            }else if(!audio.paused&&audio.currentTime>0){
+                bars.forEach(bar=>bar.style.height=(8+Math.random()*42)+'px');
+                anim=requestAnimationFrame(update);
+            }else bars.forEach(bar=>bar.style.height='4px');
         }
-        
-        function drawBackground() {
-            if (!ctx) return;
-            ctx.fillStyle = '#0a0505';
-            ctx.fillRect(0, 0, width, height);
-            drawBgObjects();
-            requestAnimationFrame(drawBackground);
-        }
-        
-        window.addEventListener('resize', () => resizeCanvas());
-        resizeCanvas();
-        drawBackground();
-        
-        // === ЗВУК И ВИЗУАЛИЗАТОР ===
-        const playButton = document.getElementById('playButton');
-        const audio = document.getElementById('audioPlayer');
-        const visualizerBars = document.querySelectorAll('.visualizer .bar');
-        let animId = null;
-        let audioContext = null;
-        let source = null;
-        let analyser = null;
-        let isAudioSetup = false;
-        
-        function setupAudio() {
-            if (isAudioSetup) return;
-            try {
-                audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                source = audioContext.createMediaElementSource(audio);
-                analyser = audioContext.createAnalyser();
-                analyser.fftSize = 256;
-                source.connect(analyser);
-                analyser.connect(audioContext.destination);
-                isAudioSetup = true;
-            } catch(e) {}
-        }
-        
-        function updateVisualizer() {
-            if (!audio.paused && audio.currentTime > 0 && analyser) {
-                const dataArray = new Uint8Array(analyser.frequencyBinCount);
-                analyser.getByteFrequencyData(dataArray);
-                const step = Math.floor(dataArray.length / visualizerBars.length);
-                visualizerBars.forEach((bar, idx) => {
-                    let value = 0;
-                    for (let i = 0; i < step; i++) value += dataArray[idx * step + i] || 0;
-                    value = value / step;
-                    let height = 4 + (value / 255) * 55;
-                    height = Math.min(height, 50);
-                    bar.style.height = height + 'px';
-                });
-                animId = requestAnimationFrame(updateVisualizer);
-            } else if (!audio.paused && audio.currentTime > 0) {
-                visualizerBars.forEach(bar => bar.style.height = (8 + Math.random() * 42) + 'px');
-                animId = requestAnimationFrame(updateVisualizer);
-            } else {
-                visualizerBars.forEach(bar => bar.style.height = '4px');
-            }
-        }
-        
         audio.load();
-        
-        function playSound() {
-            if (!isAudioSetup) setupAudio();
-            audio.currentTime = 0;
-            if (audioContext && audioContext.state === 'suspended') audioContext.resume();
-            audio.play().then(() => {
-                if (animId) cancelAnimationFrame(animId);
-                animId = requestAnimationFrame(updateVisualizer);
-            }).catch(() => {
-                const msg = document.createElement('div');
-                msg.textContent = '🔊 Нажми ещё раз';
-                msg.style.position = 'fixed';
-                msg.style.bottom = '100px';
-                msg.style.left = '50%';
-                msg.style.transform = 'translateX(-50%)';
-                msg.style.background = 'rgba(0,0,0,0.7)';
-                msg.style.color = 'white';
-                msg.style.padding = '8px 18px';
-                msg.style.borderRadius = '40px';
-                msg.style.zIndex = '10000';
-                document.body.appendChild(msg);
-                setTimeout(() => msg.remove(), 1500);
-            });
-        }
-        
-        audio.addEventListener('pause', () => {
-            if (animId) cancelAnimationFrame(animId);
-            visualizerBars.forEach(bar => bar.style.height = '4px');
-        });
-        
-        audio.addEventListener('ended', () => {
-            if (animId) cancelAnimationFrame(animId);
-            visualizerBars.forEach(bar => bar.style.height = '4px');
-        });
-        
-        playButton.addEventListener('click', playSound);
-        playButton.addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            playSound();
-        });
-        
-        document.addEventListener('pointerdown', (e) => {
-            const glow = document.createElement('div');
-            glow.className = 'tap-glow';
-            glow.style.left = e.clientX + 'px';
-            glow.style.top = e.clientY + 'px';
-            document.body.appendChild(glow);
-            setTimeout(() => glow.remove(), 500);
-        });
-        
-        const img = document.getElementById('tapkiImage');
-        if (img) {
-            img.onerror = function() {
-                this.style.display = 'none';
-                const fallback = document.createElement('div');
-                fallback.textContent = '🩴';
-                fallback.style.fontSize = '100px';
-                fallback.style.width = '100%';
-                fallback.style.height = '100%';
-                fallback.style.display = 'flex';
-                fallback.style.alignItems = 'center';
-                fallback.style.justifyContent = 'center';
-                this.parentNode.appendChild(fallback);
-            };
-        }
+        function play(){if(!setUp)setupAudio();audio.currentTime=0;if(acx&&acx.state==='suspended')acx.resume();audio.play().then(()=>{if(anim)cancelAnimationFrame(anim);anim=requestAnimationFrame(update)}).catch(()=>{let m=document.createElement('div');m.textContent='🔊 Нажми ещё раз';m.style.cssText='position:fixed;bottom:100px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.7);color:#fff;padding:8px 18px;border-radius:40px;z-index:10000';document.body.appendChild(m);setTimeout(()=>m.remove(),1500)});}
+        audio.onpause=audio.onended=()=>{if(anim)cancelAnimationFrame(anim);bars.forEach(bar=>bar.style.height='4px')};
+        btn.onclick=btn.ontouchstart=play;
+        document.onpointerdown=e=>{let g=document.createElement('div');g.className='tap-glow';g.style.left=e.clientX+'px';g.style.top=e.clientY+'px';document.body.appendChild(g);setTimeout(()=>g.remove(),500)};
+        document.getElementById('tapkiImage').onerror=function(){this.style.display='none';let fb=document.createElement('div');fb.textContent='🩴';fb.style.cssText='font-size:100px;width:100%;height:100%;display:flex;align-items:center;justify-content:center';this.parentNode.appendChild(fb)};
     </script>
+    <script>document.querySelector('.visualizer').innerHTML='<div class="bar"></div>'.repeat(12);</script>
 </body>
 </html>
