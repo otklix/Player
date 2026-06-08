@@ -2,23 +2,299 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, viewport-fit=cover">
-    <title>NFC Sound | Tapki</title>
-    <link rel="stylesheet" href="style.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>NFC Tapki</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+        body {
+            min-height: 100vh;
+            background: #0a0505;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: system-ui, -apple-system, 'SF Pro Display', sans-serif;
+            padding: 20px;
+            overflow: hidden;
+        }
+        canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            display: block;
+        }
+        .container {
+            position: relative;
+            z-index: 2;
+            text-align: center;
+            width: 100%;
+            max-width: 380px;
+        }
+        .glass-circle {
+            width: 260px;
+            height: 260px;
+            border-radius: 50%;
+            margin: 0 auto 40px;
+            overflow: hidden;
+            backdrop-filter: blur(18px);
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 180, 180, 0.3);
+            cursor: pointer;
+            transition: transform 0.1s ease, box-shadow 0.2s ease;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .glass-circle:active {
+            transform: scale(0.96);
+            box-shadow: 0 0 50px rgba(255, 50, 50, 0.5);
+        }
+        .glass-circle img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .visualizer {
+            display: flex;
+            justify-content: center;
+            align-items: flex-end;
+            gap: 6px;
+            margin-bottom: 35px;
+            height: 50px;
+        }
+        .visualizer .bar {
+            width: 5px;
+            background: rgba(255, 100, 100, 0.9);
+            border-radius: 3px;
+            transition: height 0.05s ease-out;
+            box-shadow: 0 0 6px rgba(255, 50, 50, 0.5);
+        }
+        .telegram-btn {
+            display: inline-block;
+            padding: 14px 32px;
+            border-radius: 999px;
+            text-decoration: none;
+            color: white;
+            font-size: 17px;
+            font-weight: 500;
+            backdrop-filter: blur(20px);
+            background: rgba(30, 15, 15, 0.4);
+            border: 1px solid rgba(255, 100, 100, 0.3);
+            transition: all 0.2s ease;
+            margin-bottom: 20px;
+        }
+        .telegram-btn:active {
+            transform: scale(0.96);
+        }
+        .description {
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 12px;
+            font-weight: 500;
+            display: inline-block;
+            padding: 5px 16px;
+            border-radius: 30px;
+            background: rgba(0, 0, 0, 0.3);
+        }
+        .tap-glow {
+            position: fixed;
+            width: 220px;
+            height: 220px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(255, 200, 200, 0.3), transparent 70%);
+            pointer-events: none;
+            transform: translate(-50%, -50%) scale(0.3);
+            animation: glowFade 0.5s ease-out forwards;
+            z-index: 9999;
+        }
+        @keyframes glowFade {
+            to {
+                opacity: 0;
+                transform: translate(-50%, -50%) scale(2.2);
+            }
+        }
+        @media (max-width: 550px) {
+            .glass-circle { width: 210px; height: 210px; margin-bottom: 35px; }
+            .telegram-btn { padding: 12px 26px; font-size: 15px; }
+            .visualizer { gap: 4px; }
+            .visualizer .bar { width: 4px; }
+        }
+    </style>
 </head>
 <body>
-
-<div class="bg"></div>
-
-<div class="glass-circle">
-    <img src="tapki.png" alt="Tapki">
-</div>
-
-<a href="https://t.me/Nfc_createBOT" class="telegram" target="_blank">
-    @Nfc_createBOT
-</a>
-
-<script src="app.js"></script>
-
+    <canvas id="bgCanvas"></canvas>
+    <div class="container">
+        <div class="glass-circle" id="playButton">
+            <img src="tapki.png" alt="Tapki" id="tapkiImage">
+        </div>
+        <div class="visualizer" id="visualizer">
+            <div class="bar"></div><div class="bar"></div><div class="bar"></div>
+            <div class="bar"></div><div class="bar"></div><div class="bar"></div>
+            <div class="bar"></div><div class="bar"></div><div class="bar"></div>
+            <div class="bar"></div><div class="bar"></div><div class="bar"></div>
+        </div>
+        <a href="https://t.me/ВАШ_БОТ" class="telegram-btn" target="_blank" id="telegramLink">
+            @ВАШ_БОТ
+        </a>
+        <div class="description">
+            🎭 Мемные звуки • NFC пранки
+        </div>
+    </div>
+    <audio id="audioPlayer" preload="auto">
+        <source src="https://raw.githubusercontent.com/otklix/Player/main/skachai-maks.mp3" type="audio/mpeg">
+    </audio>
+    <script>
+        const canvas = document.getElementById('bgCanvas');
+        const ctx = canvas.getContext('2d');
+        let width = window.innerWidth;
+        let height = window.innerHeight;
+        function resizeCanvas() {
+            width = window.innerWidth;
+            height = window.innerHeight;
+            canvas.width = width;
+            canvas.height = height;
+        }
+        const particles = [];
+        for (let i = 0; i < 60; i++) {
+            particles.push({
+                x: Math.random() * width,
+                y: Math.random() * height,
+                radius: 2 + Math.random() * 4,
+                vx: (Math.random() - 0.5) * 0.8,
+                vy: (Math.random() - 0.5) * 0.8,
+                opacity: 0.3 + Math.random() * 0.5
+            });
+        }
+        function draw() {
+            if (!ctx) return;
+            ctx.fillStyle = '#0a0505';
+            ctx.fillRect(0, 0, width, height);
+            for (let p of particles) {
+                p.x += p.vx;
+                p.y += p.vy;
+                if (p.x < -20) p.x = width + 20;
+                if (p.x > width + 20) p.x = -20;
+                if (p.y < -20) p.y = height + 20;
+                if (p.y > height + 20) p.y = -20;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(255, 200, 200, ${p.opacity * 0.4})`;
+                ctx.fill();
+            }
+            requestAnimationFrame(draw);
+        }
+        window.addEventListener('resize', () => resizeCanvas());
+        resizeCanvas();
+        draw();
+        
+        const playButton = document.getElementById('playButton');
+        const audio = document.getElementById('audioPlayer');
+        const visualizerBars = document.querySelectorAll('.visualizer .bar');
+        let animId = null;
+        let audioContext = null;
+        let source = null;
+        let analyser = null;
+        let isAudioSetup = false;
+        function setupAudio() {
+            if (isAudioSetup) return;
+            try {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                source = audioContext.createMediaElementSource(audio);
+                analyser = audioContext.createAnalyser();
+                analyser.fftSize = 256;
+                source.connect(analyser);
+                analyser.connect(audioContext.destination);
+                isAudioSetup = true;
+            } catch(e) {}
+        }
+        function updateVisualizer() {
+            if (!audio.paused && audio.currentTime > 0 && analyser) {
+                const dataArray = new Uint8Array(analyser.frequencyBinCount);
+                analyser.getByteFrequencyData(dataArray);
+                const step = Math.floor(dataArray.length / visualizerBars.length);
+                visualizerBars.forEach((bar, idx) => {
+                    let value = 0;
+                    for (let i = 0; i < step; i++) value += dataArray[idx * step + i] || 0;
+                    value = value / step;
+                    let height = 4 + (value / 255) * 55;
+                    height = Math.min(height, 50);
+                    bar.style.height = height + 'px';
+                });
+                animId = requestAnimationFrame(updateVisualizer);
+            } else if (!audio.paused && audio.currentTime > 0) {
+                visualizerBars.forEach(bar => bar.style.height = (8 + Math.random() * 42) + 'px');
+                animId = requestAnimationFrame(updateVisualizer);
+            } else {
+                visualizerBars.forEach(bar => bar.style.height = '4px');
+            }
+        }
+        audio.load();
+        function playSound() {
+            if (!isAudioSetup) setupAudio();
+            audio.currentTime = 0;
+            if (audioContext && audioContext.state === 'suspended') audioContext.resume();
+            audio.play().then(() => {
+                if (animId) cancelAnimationFrame(animId);
+                animId = requestAnimationFrame(updateVisualizer);
+            }).catch(() => {
+                const msg = document.createElement('div');
+                msg.textContent = '🔊 Нажми ещё раз';
+                msg.style.position = 'fixed';
+                msg.style.bottom = '100px';
+                msg.style.left = '50%';
+                msg.style.transform = 'translateX(-50%)';
+                msg.style.background = 'rgba(0,0,0,0.7)';
+                msg.style.color = 'white';
+                msg.style.padding = '8px 18px';
+                msg.style.borderRadius = '40px';
+                msg.style.zIndex = '10000';
+                document.body.appendChild(msg);
+                setTimeout(() => msg.remove(), 1500);
+            });
+        }
+        audio.addEventListener('pause', () => {
+            if (animId) cancelAnimationFrame(animId);
+            visualizerBars.forEach(bar => bar.style.height = '4px');
+        });
+        audio.addEventListener('ended', () => {
+            if (animId) cancelAnimationFrame(animId);
+            visualizerBars.forEach(bar => bar.style.height = '4px');
+        });
+        playButton.addEventListener('click', playSound);
+        playButton.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            playSound();
+        });
+        document.addEventListener('pointerdown', (e) => {
+            const glow = document.createElement('div');
+            glow.className = 'tap-glow';
+            glow.style.left = e.clientX + 'px';
+            glow.style.top = e.clientY + 'px';
+            document.body.appendChild(glow);
+            setTimeout(() => glow.remove(), 500);
+        });
+        const img = document.getElementById('tapkiImage');
+        if (img) {
+            img.onerror = function() {
+                this.style.display = 'none';
+                const fallback = document.createElement('div');
+                fallback.textContent = '🩴';
+                fallback.style.fontSize = '100px';
+                fallback.style.width = '100%';
+                fallback.style.height = '100%';
+                fallback.style.display = 'flex';
+                fallback.style.alignItems = 'center';
+                fallback.style.justifyContent = 'center';
+                this.parentNode.appendChild(fallback);
+            };
+        }
+    </script>
 </body>
 </html>
