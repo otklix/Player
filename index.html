@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, viewport-fit=cover">
+    <title>Скачай Макс</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            min-height: 100vh;
+            background: radial-gradient(ellipse at center, #1a1a1a 0%, #0a0a0a 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: -apple-system, 'SF Pro Display', system-ui, sans-serif;
+            padding: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            display: block;
+        }
+
+        .container {
+            position: relative;
+            z-index: 2;
+            text-align: center;
+            width: 100%;
+            max-width: 380px;
+        }
+
+        .glass-circle {
+            width: 260px;
+            height: 260px;
+            border-radius: 50%;
+            margin: 0 auto 40px;
+            overflow: hidden;
+            backdrop-filter: blur(18px);
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 180, 180, 0.3);
+            cursor: pointer;
+            transition: transform 0.1s ease, box-shadow 0.2s ease;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .glass-circle:active {
+            transform: scale(0.96);
+            box-shadow: 0 0 50px rgba(255, 50, 50, 0.5);
+        }
+
+        .glass-circle img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .visualizer {
+            display: flex;
+            justify-content: center;
+            align-items: flex-end;
+            gap: 6px;
+            margin-bottom: 35px;
+            height: 50px;
+        }
+
+        .visualizer .bar {
+            width: 5px;
+            background: rgba(255, 100, 100, 0.9);
+            border-radius: 3px;
+            transition: height 0.05s ease-out;
+            box-shadow: 0 0 6px rgba(255, 50, 50, 0.5);
+        }
+
+        .description {
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 12px;
+            font-weight: 500;
+            display: inline-block;
+            padding: 5px 16px;
+            border-radius: 30px;
+            background: rgba(0, 0, 0, 0.3);
+        }
+
+        .tap-glow {
+            position: fixed;
+            width: 220px;
+            height: 220px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(255, 200, 200, 0.3), transparent 70%);
+            pointer-events: none;
+            transform: translate(-50%, -50%) scale(0.3);
+            animation: glowFade 0.5s ease-out forwards;
+            z-index: 9999;
+        }
+
+        @keyframes glowFade {
+            to {
+                opacity: 0;
+                transform: translate(-50%, -50%) scale(2.2);
+            }
+        }
+
+        @media (max-width: 550px) {
+            .glass-circle {
+                width: 210px;
+                height: 210px;
+                margin-bottom: 35px;
+            }
+            .visualizer {
+                gap: 4px;
+            }
+            .visualizer .bar {
+                width: 4px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <canvas id="bgCanvas"></canvas>
+    <div class="container">
+        <div class="glass-circle" id="playButton">
+            <img src="tapki.png" alt="Tapki" id="tapkiImage">
+        </div>
+        <div class="visualizer" id="visualizer">
+            <div class="bar"></div><div class="bar"></div><div class="bar"></div>
+            <div class="bar"></div><div class="bar"></div><div class="bar"></div>
+            <div class="bar"></div><div class="bar"></div><div class="bar"></div>
+            <div class="bar"></div><div class="bar"></div><div class="bar"></div>
+        </div>
+        <div class="description">
+            🎭 Скачай Макс • NFC пранки
+        </div>
+    </div>
+
+    <audio id="audioPlayer" preload="auto">
+        <source src="skachai-maks.mp3" type="audio/mpeg">
+    </audio>
+
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.128.0/build/three.module.js"
+            }
+        }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        
+        // ========== 3D ФОН ==========
+        const canvas = document.getElementById('bgCanvas');
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x050505);
+        
+        const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.z = 3.5;
+        camera.position.y = 0.5;
+        
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
+        canvas.appendChild(renderer.domElement);
+        
+        const geometry = new THREE.SphereGeometry(1.5, 128, 128);
+        const material = new THREE.MeshStandardMaterial({
+            color: 0xdddddd,
+            emissive: 0x111111,
+            roughness: 0.3,
+            metalness: 0.7
+        });
+        
+        const sphere = new THREE.Mesh(geometry, material);
+        scene.add(sphere);
+        
+        // Звёзды
+        const starsGeometry = new THREE.BufferGeometry();
+        const starsCount = 1000;
+        const starsPositions = new Float32Array(starsCount * 3);
+        for (let i = 0; i < starsCount; i++) {
+            starsPositions[i*3] = (Math.random() - 0.5) * 200;
+            starsPositions[i*3+1] = (Math.random() - 0.5) * 100;
+            starsPositions[i*3+2] = (Math.random() - 0.5) * 80 - 40;
+        }
+        starsGeometry.setAttribute('position', new THREE.BufferAttribute(starsPositions, 3));
+        const starsMaterial = new THREE.PointsMaterial({ color: 0xffffff, size: 0.12, transparent: true, opacity: 0.5 });
+        const stars = new THREE.Points(starsGeometry, starsMaterial);
+        scene.add(stars);
+        
+        const ambientLight = new THREE.AmbientLight(0x333333);
+        scene.add(ambientLight);
+        const pointLight = new THREE.PointLight(0xffffff, 1);
+        pointLight.position.set(3, 5, 5);
+        scene.add(pointLight);
+        
+        let time = 0;
+        function animate() {
+            requestAnimationFrame(animate);
+            time += 0.005;
+            sphere.rotation.y = time * 0.3;
+            sphere.rotation.x = Math.sin(time * 0.2) * 0.1;
+            stars.rotation.y = time * 0.02;
+            stars.rotation.x = time * 0.01;
+            renderer.render(scene, camera);
+        }
+        animate();
+        
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+        
+        // ========== ЗВУК И ВИЗУАЛИЗАТОР ==========
+        const playButton = document.getElementById('playButton');
+        const audio = document.getElementById('audioPlayer');
+        const visualizerBars = document.querySelectorAll('.visualizer .bar');
+        let animId = null;
+        let audioContext = null;
+        let source = null;
+        let analyser = null;
+        let isAudioSetup = false;
+        
+        function setupAudio() {
+            if (isAudioSetup) return;
+            try {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                source = audioContext.createMediaElementSource(audio);
+                analyser = audioContext.createAnalyser();
+                analyser.fftSize = 256;
+                source.connect(analyser);
+                analyser.connect(audioContext.destination);
+                isAudioSetup = true;
+            } catch(e) {}
+        }
+        
+        function updateVisualizer() {
+            if (!audio.paused && audio.currentTime > 0 && analyser) {
+                const dataArray = new Uint8Array(analyser.frequencyBinCount);
+                analyser.getByteFrequencyData(dataArray);
+                const step = Math.floor(dataArray.length / visualizerBars.length);
+                visualizerBars.forEach((bar, idx) => {
+                    let value = 0;
+                    for (let i = 0; i < step; i++) value += dataArray[idx * step + i] || 0;
+                    value = value / step;
+                    let height = 4 + (value / 255) * 55;
+                    height = Math.min(height, 50);
+                    bar.style.height = height + 'px';
+                });
+                animId = requestAnimationFrame(updateVisualizer);
+            } else if (!audio.paused && audio.currentTime > 0) {
+                visualizerBars.forEach(bar => bar.style.height = (8 + Math.random() * 42) + 'px');
+                animId = requestAnimationFrame(updateVisualizer);
+            } else {
+                visualizerBars.forEach(bar => bar.style.height = '4px');
+            }
+        }
+        
+        audio.load();
+        
+        function playSound() {
+            if (!isAudioSetup) setupAudio();
+            // Останавливаем предыдущее воспроизведение и начинаем заново (без наложения)
+            audio.pause();
+            audio.currentTime = 0;
+            if (audioContext && audioContext.state === 'suspended') audioContext.resume();
+            audio.play().then(() => {
+                if (animId) cancelAnimationFrame(animId);
+                animId = requestAnimationFrame(updateVisualizer);
+            }).catch(() => {
+                const msg = document.createElement('div');
+                msg.textContent = '🔊 Нажми ещё раз';
+                msg.style.cssText = 'position:fixed;bottom:100px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.7);color:#fff;padding:8px 18px;border-radius:40px;z-index:10000;font-size:13px';
+                document.body.appendChild(msg);
+                setTimeout(() => msg.remove(), 1500);
+            });
+        }
+        
+        audio.addEventListener('pause', () => {
+            if (animId) cancelAnimationFrame(animId);
+            visualizerBars.forEach(bar => bar.style.height = '4px');
+        });
+        
+        audio.addEventListener('ended', () => {
+            if (animId) cancelAnimationFrame(animId);
+            visualizerBars.forEach(bar => bar.style.height = '4px');
+        });
+        
+        // Автовоспроизведение при первом касании
+        let hasPlayed = false;
+        
+        function firstTouchPlay(e) {
+            if (hasPlayed) return;
+            hasPlayed = true;
+            playSound();
+            document.removeEventListener('click', firstTouchPlay);
+            document.removeEventListener('touchstart', firstTouchPlay);
+        }
+        
+        document.addEventListener('click', firstTouchPlay);
+        document.addEventListener('touchstart', firstTouchPlay);
+        
+        // Кнопка тоже работает (без конфликта)
+        playButton.addEventListener('click', (e) => {
+            e.stopPropagation();
+            playSound();
+        });
+        
+        playButton.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            playSound();
+        });
+        
+        // Эффект нажатия
+        document.addEventListener('pointerdown', (e) => {
+            const glow = document.createElement('div');
+            glow.className = 'tap-glow';
+            glow.style.left = e.clientX + 'px';
+            glow.style.top = e.clientY + 'px';
+            document.body.appendChild(glow);
+            setTimeout(() => glow.remove(), 500);
+        });
+        
+        // Запасная картинка
+        const img = document.getElementById('tapkiImage');
+        if (img) {
+            img.onerror = function() {
+                this.style.display = 'none';
+                const fallback = document.createElement('div');
+                fallback.textContent = '🩴';
+                fallback.style.cssText = 'font-size:100px;width:100%;height:100%;display:flex;align-items:center;justify-content:center';
+                this.parentNode.appendChild(fallback);
+            };
+        }
+    </script>
+</body>
+</html>
